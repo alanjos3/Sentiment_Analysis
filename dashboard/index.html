@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Analysis Dashboard</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        /* CSS Variables: White and Blue Theme */
+        :root {
+            --bg-color: #f0f4f8; /* Light blue-grey background */
+            --card-color: #ffffff;
+            --border-color: #e5e7eb;
+            --primary-color: #3b82f6; /* Blue */
+            --primary-hover: #2563eb; /* Darker Blue */
+            --text-primary: #1f2937; /* Dark Grey */
+            --text-secondary: #6b7280; /* Medium Grey */
+            --font-display: 'Playfair Display', serif;
+            --font-body: 'Inter', sans-serif;
+            --positive: #16a34a;
+            --negative: #dc2626;
+            --neutral: #f59e0b;
+        }
+        
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        
+        .app-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .logo {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .app-nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-left: 25px;
+            transition: color 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .app-nav a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Main Content & Sections */
+        .app-main {
+            padding: 40px 0;
+        }
+        
+        .hero-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .section-divider {
+            border: none;
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 50px 0;
+        }
+
+        /* Input Section */
+        .input-section {
+            background-color: var(--card-color);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .input-section h3 {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            color: var(--text-primary);
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        .btn {
+            padding: 15px 30px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+        
+        /* Results & Charts Grid */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+        
+        .card {
+            background: var(--card-color);
+            border-radius: 12px;
+            padding: 25px;
+            min-height: 300px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: var(--text-primary);
+        }
+
+        /* Result Display Styles */
+        #latestResult p, #historyList p {
+            color: var(--text-secondary);
+        }
+
+        .sentiment-result {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .positive { color: var(--positive); }
+        .negative { color: var(--negative); }
+        .neutral { color: var(--neutral); }
+        
+        .confidence {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        /* History List */
+        #historyList .history-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f0f4f8; /* Match page background */
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #historyList .sentiment-result {
+            font-size: 0.9rem;
+            margin: 0;
+            font-weight: 600;
+            min-width: 80px; /* Ensures consistent alignment */
+            text-align: left;
+        }
+
+        #historyList small {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            height: 350px;
+        }
+        
+        .chart-container h3 {
+            text-align: center;
+        }
+
+        /* Footer */
+        .app-footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 30px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            .app-header {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .input-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-wrapper">
+        <header class="app-header">
+            <div class="logo">Sentiment Analysis</div>
+            <nav class="app-nav">
+                <a href="#">About</a>
+                <a href="#">API</a>
+            </nav>
+        </header>
+
+        <main class="app-main">
+            <section class="hero-section">
+                <h1 class="hero-title">Uncover Insights in Every Word</h1>
+                <p class="hero-subtitle">Use our real-time dashboard to monitor customer feedback, track trends, and understand the voice of your audience instantly.</p>
+            </section>
+
+            <section class="input-section">
+                <h3>Analyze New Feedback</h3>
+                <div class="input-group">
+                    <input type="text" id="feedbackInput" placeholder="Enter customer feedback text...">
+                    <button class="btn" onclick="analyzeSentiment()">Analyze</button>
+                </div>
+            </section>
+
+            <hr class="section-divider">
+
+            <section class="dashboard-section">
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <h3>Latest Analysis</h3>
+                        <div id="latestResult">
+                            <p>Enter feedback above to see the latest analysis results here.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>Analysis History</h3>
+                        <div id="historyList">
+                            <p>No analysis performed yet. Your last 5 analyses will appear here.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card chart-container">
+                        <h3>Sentiment Distribution</h3>
+                        <canvas id="sentimentChart"></canvas>
+                    </div>
+                    
+                    <div class="card chart-container">
+                        <h3>Sentiment Trends</h3>
+                        <canvas id="trendsChart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p>&copy; 2025 Sentiment Analysis. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let sentimentData = {
+                positive: 0,
+                negative: 0,
+                neutral: 0
+            };
+            
+            let trendsData = [];
+            let analysisHistory = [];
+            
+            // --- Chart.js Light Theme Configuration ---
+            Chart.defaults.color = '#6b7280'; 
+            Chart.defaults.borderColor = 'rgba(0, 0, 0, 0.05)';
+
+            // --- Initialize Charts ---
+            const sentimentChart = new Chart(document.getElementById('sentimentChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positive', 'Negative', 'Neutral'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#16a34a', '#dc2626', '#f59e0b'],
+                        borderColor: '#ffffff',
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { padding: 20, font: { size: 14 } }
+                        }
+                    }
+                }
+            });
+            
+            const trendsChart = new Chart(document.getElementById('trendsChart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Sentiment Score',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 1,
+                            grid: { drawBorder: false }
+                        },
+                        x: {
+                            grid: {
+                                display: true,
+                                drawBorder: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+            
+            window.analyzeSentiment = function() {
+                const textInput = document.getElementById('feedbackInput');
+                const text = textInput.value.trim();
+                if (!text) {
+                    alert('Please enter some feedback text');
+                    return;
+                }
+                
+                simulateAnalysis(text);
+            }
+            
+            function simulateAnalysis(text) {
+                const sentiments = ['positive', 'negative', 'neutral'];
+                const randomSentiment = sentiments[Math.floor(Math.random() * sentiments.length)];
+                const confidence = Math.random() * 0.4 + 0.6;
+                
+                const result = {
+                    text: text,
+                    sentiment: randomSentiment,
+                    confidence: confidence,
+                    timestamp: new Date().toLocaleTimeString('en-IN', { hour12: false }) // Use Indian English locale for time
+                };
+                
+                updateDashboard(result);
+            }
+            
+            function updateDashboard(result) {
+                const latestResultEl = document.getElementById('latestResult');
+                latestResultEl.innerHTML = `
+                    <p><strong>Text:</strong> "${result.text}"</p>
+                    <div class="sentiment-result ${result.sentiment}">
+                        Sentiment: ${result.sentiment.toUpperCase()}
+                    </div>
+                    <div class="confidence">
+                        Confidence: ${(result.confidence * 100).toFixed(1)}%
+                    </div>
+                `;
+                
+                analysisHistory.unshift(result);
+                if (analysisHistory.length > 5) {
+                    analysisHistory.pop();
+                }
+                
+                const historyListEl = document.getElementById('historyList');
+                historyListEl.innerHTML = analysisHistory.map(item => `
+                    <div class="history-item">
+                        <div class="sentiment-result ${item.sentiment}">${item.sentiment.toUpperCase()}</div>
+                        <small>${item.timestamp}</small>
+                    </div>
+                `).join('');
+                
+                sentimentData[result.sentiment]++;
+                sentimentChart.data.datasets[0].data = [
+                    sentimentData.positive,
+                    sentimentData.negative,
+                    sentimentData.neutral
+                ];
+                sentimentChart.update();
+                
+                const sentimentScore = result.sentiment === 'positive' ? 1 : 
+                                       result.sentiment === 'negative' ? 0 : 0.5;
+                trendsData.push(sentimentScore);
+                if (trendsData.length > 10) {
+                    trendsData.shift();
+                }
+                
+                trendsChart.data.labels = trendsData.map((_, i) => `A${i + 1}`);
+                trendsChart.data.datasets[0].data = trendsData;
+                trendsChart.update();
+                
+                document.getElementById('feedbackInput').value = '';
+            }
+            
+            document.getElementById('feedbackInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    analyzeSentiment();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
